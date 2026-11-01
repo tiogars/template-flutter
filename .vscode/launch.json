@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {
+      "name": "Flutter Windows",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}\\flutter\\application",
+      "program": "lib\\main.dart",
+      "deviceId": "windows",
+      "flutterMode": "debug"
+    }
+  ]
+}

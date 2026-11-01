@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Flutter: Windows debug",
+			"type": "shell",
+			"command": "Set-Location '${workspaceFolder}\\flutter\\application'; flutter run -d windows --debug",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
