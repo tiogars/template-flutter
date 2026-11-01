@@ -1,0 +1,141 @@
+name: Flutter releases and backend image
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: Default HTTPS API URL compiled into the applications
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-releases-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  API_BASE_URL: ${{ inputs.api_base_url || vars.API_BASE_URL || 'https://api.example.com' }}
+  FLUTTER_VERSION: '3.47.5'
+
+jobs:
+  android-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3.11.1
+      - name: Package Android and Linux
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: docker/flutter.Dockerfile
+          target: artifacts
+          build-args: |
+            API_BASE_URL=${{ env.API_BASE_URL }}
+            FLUTTER_VERSION=${{ env.FLUTTER_VERSION }}
+          outputs: type=local,dest=docker/flutter-artifacts
+          cache-from: type=gha,scope=flutter-android-linux
+          cache-to: type=gha,mode=max,scope=flutter-android-linux
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: flutter-android-linux
+          path: docker/flutter-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2.21.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Package Windows
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop --no-analytics
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter configuration failed.' }
+          & ./flutter/scripts/package-windows.ps1 -ApiBaseUrl $env:API_BASE_URL -OutputDir (Join-Path $env:GITHUB_WORKSPACE 'docker/flutter-artifacts')
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: flutter-windows
+          path: docker/flutter-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  backend:
+    needs: [android-linux, windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4.3.0
+        with:
+          pattern: flutter-*
+          merge-multiple: true
+          path: docker/flutter-artifacts
+      - name: Check release packages
+        run: |
+          test -s docker/flutter-artifacts/android/application-android.apk
+          test -s docker/flutter-artifacts/linux/application-linux-x64.tar.gz
+          test -s docker/flutter-artifacts/windows/application-windows-x64.zip
+          for platform in android linux windows; do
+            test -s "docker/flutter-artifacts/$platform/build-info.json"
+          done
+      - name: Image name
+        id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "name=ghcr.io/${REPOSITORY,,}-backend" >> "$GITHUB_OUTPUT"
+      - uses: docker/metadata-action@v5.7.0
+        id: metadata
+        with:
+          images: ${{ steps.image.outputs.name }}
+          flavor: latest=false
+          tags: |
+            type=sha,format=long
+            type=ref,event=tag
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/setup-buildx-action@v3.11.1
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/v'))
+        uses: docker/login-action@v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build backend with embedded downloads
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: docker/backend.Dockerfile
+          build-contexts: |
+            flutter-artifacts=./docker/flutter-artifacts
+          build-args: |
+            VITE_API_BASE_URL=${{ env.API_BASE_URL }}
+            VITE_DOCS_BASE_URL=${{ vars.DOCS_BASE_URL || 'http://localhost:8000' }}
+            VITE_GITHUB_BASE_URL=${{ github.server_url }}/${{ github.repository }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          push: ${{ github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/v')) }}
+          cache-from: type=gha,scope=backend-releases
+          cache-to: type=gha,mode=max,scope=backend-releases
