@@ -8,7 +8,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-app_dir="${APP_DIR:-$script_dir/../application}"
+app_dir="${APP_DIR:-$script_dir/..}"
 output_dir="${OUTPUT_DIR:-$app_dir/build/releases}"
 api_base_url="${API_BASE_URL:-http://localhost:8989}"
 

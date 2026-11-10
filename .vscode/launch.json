@@ -4,7 +4,7 @@
       "name": "Flutter Windows",
       "request": "launch",
       "type": "dart",
-      "cwd": "${workspaceFolder}\\flutter\\application",
+      "cwd": "${workspaceFolder}",
       "program": "lib\\main.dart",
       "deviceId": "windows",
       "flutterMode": "debug"

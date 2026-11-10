@@ -1,0 +1,8 @@
+*
+!template-flutter
+!template-flutter-api-client
+template-flutter/build
+template-flutter/.dart_tool
+template-flutter/.git
+template-flutter-api-client/.dart_tool
+template-flutter-api-client/.git

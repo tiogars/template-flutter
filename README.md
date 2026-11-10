@@ -10,7 +10,7 @@ paths; the parent editor excludes the current node and its descendants. Backend
 validation errors, including referenced-category deletion failures, remain visible.
 
 The reusable `domain_template_client` package retains its existing package identity
-and lives in `../dart-client`. Import
+and lives in the sibling repository `../template-flutter-api-client`. Import
 `package:domain_template_client/task_client.dart`, `tag_client.dart` or
 `nomenclature_client.dart` for the corresponding authenticated REST clients.
 Task seed/import/export endpoints remain available on `TaskClient`.
@@ -32,8 +32,17 @@ flutter analyze
 dart format lib test
 ```
 
-Run `dart pub get`, `dart test` and `dart analyze` in `../dart-client` for the
+Run `dart pub get`, `dart test` and `dart analyze` in `../template-flutter-api-client` for the
 standalone client package.
+
+## Release packages
+
+The `Flutter releases` workflow packages Android and Linux on Ubuntu and Windows on
+a Windows runner, checking out `tiogars/template-flutter-api-client` next to this
+repository. Set the `API_BASE_URL` Actions variable to the public HTTPS API URL
+compiled into the applications. Pushing a `v*` tag publishes a GitHub Release with
+the packages and `build-info-<platform>.json` files; the next
+`template-react-backend` image build embeds them in its download page.
 
 ## Run and debug on Windows
 

@@ -4,7 +4,7 @@
 		{
 			"label": "Flutter: Windows debug",
 			"type": "shell",
-			"command": "Set-Location '${workspaceFolder}\\flutter\\application'; flutter run -d windows --debug",
+			"command": "Set-Location '${workspaceFolder}'; flutter run -d windows --debug",
 			"isBackground": true,
 			"problemMatcher": []
 		}

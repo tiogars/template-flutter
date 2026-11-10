@@ -16,7 +16,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$appDir = Resolve-Path (Join-Path $PSScriptRoot '..\application')
+$appDir = Resolve-Path (Join-Path $PSScriptRoot '..')
 if (-not $OutputDir) { $OutputDir = Join-Path $appDir 'build\releases' }
 $OutputDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDir)
 
